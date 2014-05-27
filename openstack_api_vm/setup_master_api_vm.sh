@@ -20,7 +20,7 @@ users=(
   user3
   user4
 )
-echo "Setting up users:"
+echo "Setting up users on this VM:"
 for user in "${users[@]}"; do
   password=$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-${PASSWORD_LENGTH}};echo;)
 
@@ -30,14 +30,18 @@ for user in "${users[@]}"; do
   echo "DONE"
 done
 
-echo "Commands for copying your public SSH keys to this VM and disabling password login:"
+echo "Commands for creating a key and copying its public SSH key to this VM:"
 for user in "${users[@]}"; do
-  echo -e "\tssh-copy-id ${user}@$(ifconfig eth0 | awk -F'[: ]+' '/inet addr:/ {print $4}') && ssh ${user}@$(ifconfig eth0 | awk -F'[: ]+' '/inet addr:/ {print $4}') passwd --delete ${user}"
+  echo -e "\tssh-keygen -t rsa -C 'NeCTAR API VM' -N 'your_secret_passphrase' -f \$HOME/.ssh/nectar_api_vm && ssh-copy-id -i \$HOME/.ssh/nectar_api_vm ${user}@$(ifconfig eth0 | awk -F'[: ]+' '/inet addr:/ {print $4}')"
 done
+echo "=================================================================================="
+echo "After enabling SSH key access for the above users, disable password authentication"
+echo -e "\tsed -i -e '$aPasswordAuthentication no' /etc/ssh/sshd_config"
+echo "=================================================================================="
 
 # Setup SSH keys for each user so they can add the public key to the NeCTAR dashboard.
 # This will mean they can use that key to launch their own VM's on the cloud
-echo "Setting up SSH keys for users:"
+echo "Add these public keys to the NeCTAR dashboard. This will allow you to use OpenStack API's from this VM"
 for user in "${users[@]}"; do
   su - "${user}" -c 'bash -c "ssh-keygen -t rsa -q -N \"\" -f $HOME/.ssh/id_rsa"'
   echo -e "\t${user}\n$(cat /home/${user}/.ssh/id_rsa.pub)\n-----"
