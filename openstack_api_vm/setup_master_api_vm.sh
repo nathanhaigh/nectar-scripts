@@ -12,7 +12,7 @@ pip install python-novaclient python-swiftclient python-keystoneclient python-gl
 # Install parallel-ssh
 apt-get install -y pssh
 
-# For each user that needs to interact with the NeCTAR Research Cloud, create a user account and generate an SSH key
+# For each user that needs to login to this VM, create a user account and generate an SSH key
 PASSWORD_LENGTH=10
 users=(
   user1
@@ -35,8 +35,11 @@ for user in "${users[@]}"; do
   echo -e "\tssh-copy-id ${user}@$(ifconfig eth0 | awk -F'[: ]+' '/inet addr:/ {print $4}') && ssh ${user}@$(ifconfig eth0 | awk -F'[: ]+' '/inet addr:/ {print $4}') passwd --delete ${user}"
 done
 
-# Immediately copy the public key of each person that needs to login to this VM and disable the password login
-# ssh-copy-id user1@
-
-
+# Setup SSH keys for each user so they can add the public key to the NeCTAR dashboard.
+# This will mean they can use that key to launch their own VM's on the cloud
+echo "Setting up SSH keys for users:"
+for user in "${users[@]}"; do
+  su - "${user}" -c 'bash -c "ssh-keygen -t rsa -q -N \"\" -f $HOME/.ssh/id_rsa"'
+  echo -e "\t${user}\n$(cat /home/${user}/.ssh/id_rsa.pub)\n-----"
+done
 
